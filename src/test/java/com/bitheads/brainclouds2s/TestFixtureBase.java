@@ -19,17 +19,21 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-public class BrainCloudS2STest {
+public class TestFixtureBase {
 
-    static protected String m_serverUrl = "";
-    static protected String m_appId = "";
-    static protected String m_serverSecret = "";
-    static protected String m_serverName = "";
+    static private String m_serverUrl = "";
+    static private String m_appId = "";
+    static private String m_serverSecret = "";
+    static private String m_serverName = "";
 
-    public BrainCloudS2STest() {
+    protected boolean m_autoAuth = false;
+    protected String m_serverSecretOverride = null;
+    protected boolean m_expectAuthFail = false;
+
+    public TestFixtureBase() {
     }
 
-    private static BrainCloudS2S _s2sClient;
+    protected static BrainCloudS2S _s2sClient;
 
     /// <summary>
     /// Routine loads up brainCloud configuration info from "${PROJECT_ROOT}/ids.txt"
@@ -107,12 +111,35 @@ public class BrainCloudS2STest {
         System.out.println("setUp()");
 
         _s2sClient = new BrainCloudS2S();
-        _s2sClient.init(m_appId, m_serverName, m_serverSecret, m_serverUrl);
+        _s2sClient.init(m_appId, m_serverName, 
+                        m_serverSecretOverride != null ? m_serverSecretOverride : m_serverSecret, 
+                        m_serverUrl, m_autoAuth);
         _s2sClient.setLogEnabled(true);
 
         if (!_s2sClient.isIsInitialized()) {
             fail("Initialization Failed");
             _s2sClient = null;
+            return;
+        }
+
+        if (!m_autoAuth) {
+            TestResult tr = new TestResult();
+
+            _s2sClient.authenticate(tr);
+            JSONObject jsonData = tr.getResult(_s2sClient);
+
+            int statusCode = jsonData.getInt("status");
+
+            if (statusCode != 200 && !m_expectAuthFail) {
+                fail("Auth Failed");
+                _s2sClient = null;
+                return;
+            }
+            if (statusCode == 200 && m_expectAuthFail) {
+                fail("Auth expected to fail, but passed");
+                _s2sClient = null;
+                return;
+            }
         }
     }
 
@@ -127,44 +154,39 @@ public class BrainCloudS2STest {
         }
     }
 
-    /**
-     * Test of globalEntity service, of Brainclouds2s request.
-     */
-    @Test
-    public void testGetList() {
+    public void runSimple(String requestString) {
+        
+        JSONObject json = null;
+        try {
+            json = new JSONObject(requestString);
+        } catch (Exception e) {
+            fail("Bad json");
+        }
 
-        System.out.println("testGetList()");
+        TestResult tr = new TestResult();
+        _s2sClient.request(json, tr);
+        JSONObject result = tr.getResult(_s2sClient);
 
-        System.out.println("testGetList");
-        JSONObject json = new JSONObject();
-        json.put("service", "globalEntity");
-        json.put("operation", "GET_LIST");
+        if (result == null || result.getInt("status") != 200) {
+            fail("Error returned");
+        }
+    }
 
-        JSONObject orderBy = new JSONObject();
-        JSONObject where = new JSONObject();
-        JSONObject params = new JSONObject();
-        where.put("entityType", "address");
-        params.put("where", where);
-        params.put("orderBy", orderBy);
-        params.put("maxReturn", 5);
-        json.put("data", params);
+    public void runSimpleExpectFail(String requestString) {
+        
+        JSONObject json = null;
+        try {
+            json = new JSONObject(requestString);
+        } catch (Exception e) {
+            return; // That's good
+        }
 
-        _s2sClient.request(json, (BrainCloudS2S context, JSONObject jsonData) -> {
-            if (context != _s2sClient) {
-                fail("wrong context returned");
-            }
-            if (jsonData.getInt("status") != 200) {
-                fail("Error returned");
-            }
-            if (!jsonData.has("data")) {
-                fail("Missing data in return");
-            }
-            if (!jsonData.getJSONObject("data").has("entityList")) {
-                fail("Missing entityList in return");
-            }
-            JSONArray list = jsonData.getJSONObject("data").getJSONArray("entityList");
+        TestResult tr = new TestResult();
+        _s2sClient.request(json, tr);
+        JSONObject result = tr.getResult(_s2sClient);
 
-            System.out.println(jsonData.toString());
-        });
+        if (result != null && result.getInt("status") == 200) {
+            fail("Expected fail, got 200");
+        }
     }
 }
