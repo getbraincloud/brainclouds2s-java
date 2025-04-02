@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.bitheads</groupId>
 	<artifactId>brainclouds2s</artifactId>
-	<version>5.5.0</version>
+	<version>5.6.0</version>
 	<packaging>jar</packaging>
 	<name>brainCloud S2S Java</name>
 	<description>The Java library for brainCloud S2S</description>
