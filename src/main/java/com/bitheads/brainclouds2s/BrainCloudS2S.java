@@ -67,6 +67,7 @@ public class BrainCloudS2S implements Runnable {
     private Object _lock = new Object();
     
     private RTTComms _rttComms;
+    private BrainCloudS2SGlobalFileV3 _globalFileV3;
 
     /**
      * Initialize BrainCloudS2S context
@@ -101,6 +102,9 @@ public class BrainCloudS2S implements Runnable {
         if(_rttComms == null) {
         	_rttComms = new RTTComms();
         }
+
+        _globalFileV3 = new BrainCloudS2SGlobalFileV3(this);
+        _globalFileV3.init(_serverUrl);
     }
 
     /**
@@ -203,7 +207,15 @@ public class BrainCloudS2S implements Runnable {
     public String getAppId() {
     	return _appId;
     }
-    
+
+    public String getServerUrl() {
+        return _serverUrl;
+    }
+
+    public BrainCloudS2SGlobalFileV3 getGlobalFileV3() {
+        return _globalFileV3;
+    }
+
     public String getSessionId() {
     	return _sessionId;
     }
@@ -593,6 +605,8 @@ public class BrainCloudS2S implements Runnable {
         _packetId = 0;
         _sessionId = null;
         _requestQueue.clear();
+
+        if (_globalFileV3 != null) _globalFileV3.disconnect();
     }
     
     public void enableRTT(IRTTConnectCallback connectCallback) {
@@ -620,8 +634,9 @@ public class BrainCloudS2S implements Runnable {
      */
     public void runCallbacks() {
         runCallbacks(0);
-        
+
         _rttComms.runCallbacks();
+        _globalFileV3.runCallbacks();
     }
 
     /*
