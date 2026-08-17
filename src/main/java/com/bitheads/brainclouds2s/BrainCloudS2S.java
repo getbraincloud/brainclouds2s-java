@@ -245,10 +245,14 @@ public class BrainCloudS2S implements Runnable {
 
     private String redactSecretKeys(String s) {
         for (String key : SENSITIVE_KEYS) {
-            String search = "\"" + key + "\":\"";
+            String search = "\"" + key + "\":";
             int keyStart = s.indexOf(search);
             while (keyStart >= 0) {
-                int valueStart = keyStart + search.length();
+                // Skip past the colon and any whitespace (handles both compact and pretty-printed JSON)
+                int pos = keyStart + search.length();
+                while (pos < s.length() && s.charAt(pos) != '"') pos++;
+                if (pos >= s.length()) break;
+                int valueStart = pos + 1; // skip opening quote
                 int valueEnd = s.indexOf('"', valueStart);
                 if (valueEnd < 0) break;
                 s = s.substring(0, valueStart) + "[REDACTED]" + s.substring(valueEnd);
