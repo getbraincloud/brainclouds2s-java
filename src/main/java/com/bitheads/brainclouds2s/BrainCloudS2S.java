@@ -56,6 +56,8 @@ public class BrainCloudS2S implements Runnable {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     private boolean _loggingEnabled = false;
+    private boolean _showSecretLogs = false;
+    private static final String[] SENSITIVE_KEYS = { "secretKey", "serverSecret", "ApiKey", "secret", "token", "X-RTT-SECRET" };
     private long _heartbeatSeconds = 1800;  // Default to 30 mins
     private List<Request> _requestQueue = new ArrayList<Request>();
 
@@ -230,6 +232,30 @@ public class BrainCloudS2S implements Runnable {
      */
     public void setLogEnabled(boolean isEnabled) {
         _loggingEnabled = isEnabled;
+    }
+
+    /**
+     * Control whether sensitive fields (serverSecret, token, etc.) are shown in logs.
+     * When false (default), those values are replaced with [REDACTED].
+     * @param enabled Show secrets if true. Default false
+     */
+    public void showSecretLogs(boolean enabled) {
+        _showSecretLogs = enabled;
+    }
+
+    private String redactSecretKeys(String s) {
+        for (String key : SENSITIVE_KEYS) {
+            String search = "\"" + key + "\":\"";
+            int keyStart = s.indexOf(search);
+            while (keyStart >= 0) {
+                int valueStart = keyStart + search.length();
+                int valueEnd = s.indexOf('"', valueStart);
+                if (valueEnd < 0) break;
+                s = s.substring(0, valueStart) + "[REDACTED]" + s.substring(valueEnd);
+                keyStart = s.indexOf(search, valueStart + 10);
+            }
+        }
+        return s;
     }
 
     private JSONObject createPacket(JSONObject json) {
@@ -407,17 +433,6 @@ public class BrainCloudS2S implements Runnable {
 				byte[] postData = body.getBytes("UTF-8");
 				connection.setRequestProperty("Content-Length", Integer.toString(postData.length));
 
-				// Don't log the app secret if this is an authentication
-				// (NOTE that we're modifying the original request but that's ok because the body content has already been read ^^)
-				if (_state == STATE_AUTHENTICATING) {
-					JSONArray messages = jsonRequest.getJSONArray(MESSAGES);
-					JSONObject authMessage = messages.getJSONObject(0);
-					JSONObject authData = authMessage.getJSONObject(DATA);
-					String serverSecret = authData.getString(SERVER_SECRET);
-					if (serverSecret != null && serverSecret.length() > 5) {
-						authData.put(SERVER_SECRET, new StringBuilder().append(serverSecret.substring(0, 6)).append("******").toString());
-					}
-				}
 				logRequest(jsonRequest);
 
 				connection.connect();
@@ -571,11 +586,12 @@ public class BrainCloudS2S implements Runnable {
 	private void logString(String s, Instant timestamp) {
 
 		if (_loggingEnabled) {
+			 String redacted = _showSecretLogs ? s : redactSecretKeys(s);
 			 // for now use System.out as unit tests do not support android.util.log class
 			 String log = new StringBuilder("#BCC ")
 					 .append(DateTimeFormatter.ISO_INSTANT.format(timestamp))
 					 .append(' ')
-					 .append(s)
+					 .append(redacted)
 					 .toString();
 
 			 System.out.println(log);
