@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.bitheads</groupId>
 	<artifactId>brainclouds2s</artifactId>
-	<version>6.0.0</version>
+	<version>6.1.0</version>
 	<packaging>jar</packaging>
 	<name>brainCloud S2S Java</name>
 	<description>The Java library for brainCloud S2S</description>
@@ -33,8 +33,8 @@
 	</properties>
 	<distributionManagement>
 		<snapshotRepository>
-			<id>ossrh</id>
-			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+			<id>central</id>
+			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
 		</snapshotRepository>
 	</distributionManagement>
 	<build>
