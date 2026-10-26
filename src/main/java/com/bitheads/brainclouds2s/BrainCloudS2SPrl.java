@@ -130,7 +130,7 @@ public class BrainCloudS2SPrl {
      *
      * Flow:
      *   1. Enable RTT
-     *   2. Subscribe to the lobby status channel (chat/CHANNEL_CONNECT)
+     *   2. Subscribe to the lobby status channel (chat/SYS_CHANNEL_CONNECT)
      *   3. Notify brainCloud the room session has started (roomServer/SYS_ROOM_SESSION_STARTED)
      *   4. Query the lobby state (lobby/GET_LOBBY_DATA)
      *   5. If state is "starting" → proceed. If "disbanded" or not found → exit.
@@ -186,7 +186,7 @@ public class BrainCloudS2SPrl {
                 channelData.put("maxReturn", 50);
                 JSONObject channelRequest = new JSONObject();
                 channelRequest.put("service", "chat");
-                channelRequest.put("operation", "CHANNEL_CONNECT");
+                channelRequest.put("operation", "SYS_CHANNEL_CONNECT");
                 channelRequest.put("data", channelData);
 
                 s2s.request(channelRequest, (context, channelResult) -> {
